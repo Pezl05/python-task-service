@@ -106,7 +106,7 @@ $ pip install -r requirements.txt
 
 Run Command.
 ```
-# NestJS Run Application for Development
+# FastAPI Run Application for Development
 $ fastapi dev app/main.py
 ```
 

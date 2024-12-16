@@ -1,0 +1,51 @@
+# Python specific
+*.pyc
+*.pyo
+*.pyd
+**/__pycache__/
+*.env
+.venv/
+env/
+venv/
+.idea/
+*.sqlite3
+
+# FastAPI specific
+instance/
+*.log
+*.db
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Test and Coverage reports
+.tox/
+.nox/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor/IDE specific
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# PyInstaller
+*.spec
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Virtualenv
+pip-wheel-metadata/
+*.egg-info/
+
+# Build
+build/
+dist/
+*.egg
+.eggs/
+
+# Docker
+docker-compose.override.yml

@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import FastAPI, Request, Depends, HTTPException, Query
+from fastapi import FastAPI, Request, Depends, HTTPException, Query, APIRouter
 from sqlmodel import Session, select
 from sqlalchemy import cast, Date
 from fastapi.responses import JSONResponse
@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+router = APIRouter(prefix="/api/v1")
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -54,7 +55,7 @@ async def jwt_auth(request: Request, call_next):
     return response
 
 # Tasks Modules
-@app.post("/tasks/")
+@router.post("/tasks/")
 async def create_task(task: TasksCreate, session: SessionDep):
     task_data = Tasks.model_validate(task)
     session.add(task_data)
@@ -62,7 +63,7 @@ async def create_task(task: TasksCreate, session: SessionDep):
     await session.refresh(task_data)
     return {"status": "success", "message": "Task created successfully", "task": task_data}
 
-@app.get("/tasks/", response_model=list[TasksPublic])
+@router.get("/tasks/", response_model=list[TasksPublic])
 async def read_tasks(
     session: SessionDep,
     project_id: int | None = None,
@@ -97,14 +98,14 @@ async def read_tasks(
     tasks = result.scalars().all()
     return tasks
 
-@app.get("/tasks/{task_id}", response_model=TasksPublic)
+@router.get("/tasks/{task_id}", response_model=TasksPublic)
 async def read_task(task_id: int, session: SessionDep):
     task_data = await session.get(Tasks, task_id)
     if not task_data:
         raise HTTPException(status_code=404, detail="Task not found.")
     return task_data
 
-@app.patch("/tasks/{task_id}", response_model=TasksPublic)
+@router.patch("/tasks/{task_id}", response_model=TasksPublic)
 async def update_tasks(task_id: int, task: TasksUpdate, session: SessionDep):
     task_data = await session.get(Tasks, task_id)
     if not task_data:
@@ -116,7 +117,7 @@ async def update_tasks(task_id: int, task: TasksUpdate, session: SessionDep):
     await session.refresh(task_data)
     return task_data
 
-@app.delete("/tasks/{task_id}")
+@router.delete("/tasks/{task_id}")
 async def delete_tasks(task_id: int, session: SessionDep):
     task_data = await session.get(Tasks, task_id)
     if not task_data:
@@ -129,7 +130,7 @@ async def delete_tasks(task_id: int, session: SessionDep):
 
 # Assignments Modules
 
-@app.post("/assignments/")
+@router.post("/assignments/")
 async def create_assignment(assign: AssignmentsCreate, session: SessionDep):
     existing_assignment = await session.execute(
         select(Assignments).filter(
@@ -146,7 +147,7 @@ async def create_assignment(assign: AssignmentsCreate, session: SessionDep):
     await session.refresh(assign_data)
     return {"status": "success", "message": "Assignment created successfully", "asssignment": assign_data}
 
-@app.get("/assignments/", response_model=list[AssignmentsPublic])
+@router.get("/assignments/", response_model=list[AssignmentsPublic])
 async def read_assignments(
     session: SessionDep,
     task_id: int | None = None,
@@ -178,14 +179,14 @@ async def read_assignments(
     tasks = result.scalars().all()
     return tasks
 
-@app.get("/assignments/{assigned_id}", response_model=TasksPublic)
+@router.get("/assignments/{assigned_id}", response_model=TasksPublic)
 async def read_assignment(assigned_id: int, session: SessionDep):
     assign_data = await session.get(Assignments, assigned_id)
     if not assign_data:
         raise HTTPException(status_code=404, detail="Assignment not found.")
     return assign_data
 
-@app.delete("/assignments/{assigned_id}")
+@router.delete("/assignments/{assigned_id}")
 async def delete_assignment(assigned_id: int, session: SessionDep):
     assign_data = await session.get(Assignments, assigned_id)
     if not assign_data:
@@ -193,3 +194,14 @@ async def delete_assignment(assigned_id: int, session: SessionDep):
     session.delete(assign_data)
     await session.commit()
     return {"status": "success", "message": "Assignment deleted successfully"}
+
+app.include_router(router)
+
+@app.get("/")
+async def root():
+    api_routes = []
+    for route in app.routes:
+        if hasattr(route, "path") and route.path.startswith("/api/v1"):
+            methods = ",".join(route.methods)
+            api_routes.append(f"{methods} {route.path}")
+    return JSONResponse(content={"api_routes": api_routes})

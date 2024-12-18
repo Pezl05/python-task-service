@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 from pydantic import BaseModel
 from datetime import datetime, date
 
@@ -13,13 +13,15 @@ class Users(SQLModel, table=True):
     updated_at: datetime = Field(default=datetime.utcnow)
     deleted_at: datetime | None = Field(default=None)
 
-class Projects(SQLModel, table=True):
+class ProjectPublic(SQLModel):
     project_id: int = Field(default=None, primary_key=True)
     name: str = Field(max_length=100, nullable=False) 
-    description: str | None = Field(default=None)  
-    created_by: int = Field(index=True, foreign_key="users.user_id")
+    # created_by: int = Field(index=True, foreign_key="users.user_id")
     start_date: date | None = Field(default=None) 
     end_date: date | None = Field(default=None)
+
+class Projects(ProjectPublic, table=True):    
+    description: str | None = Field(default=None)  
     status: str = Field(default="active", max_length=50) 
     created_at: datetime = Field(default=datetime.utcnow)
     updated_at: datetime = Field(default=datetime.utcnow)
@@ -34,7 +36,7 @@ class TasksBase(SQLModel):
     due_date: date | None = None
 
 class Tasks(TasksBase, table=True):
-    task_id: int = Field(default=None, primary_key=True)
+    task_id: int | None = Field(default=None, primary_key=True)
     project_id: int = Field(index=True, foreign_key="projects.project_id")
     created_by: int = Field(index=True, foreign_key="users.user_id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -43,7 +45,6 @@ class Tasks(TasksBase, table=True):
 
 class TasksCreate(TasksBase):
     project_id: int
-    created_by: int
 
 class TasksUpdate(TasksBase):
     title: str | None = None
@@ -62,21 +63,20 @@ class TasksPublic(TasksBase):
     deleted_at: datetime | None
 
 class AssignmentsBase(SQLModel):
-    task_id: int = Field(index=True, foreign_key="tasks.task_id")
+    task_id: int | None = Field(index=True, foreign_key="tasks.task_id")
     user_id: int = Field(index=True, foreign_key="users.user_id")
-    assigned_by: int = Field(index=True, foreign_key="users.user_id")
-    assigned_at: datetime = Field(default_factory=datetime.utcnow)
+    assigned_at: datetime | None = Field(default_factory=datetime.utcnow)
 
 class Assignments(AssignmentsBase, table=True):
     assigned_id: int | None = Field(default=None, primary_key=True)
+    assigned_by: int | None = Field(index=True, foreign_key="users.user_id")
 
-class AssignmentsCreate(SQLModel):
-    task_id: int
-    user_id: int
-    assigned_by: int
+class AssignmentsCreate(AssignmentsBase):
+    pass
 
 class AssignmentsPublic(AssignmentsBase):
     assigned_id: int
+    assigned_by: int
 
 class Jwt_Auth(BaseModel):
     user_id: int

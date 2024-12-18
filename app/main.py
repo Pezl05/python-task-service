@@ -56,8 +56,10 @@ async def jwt_auth(request: Request, call_next):
 
 # Tasks Modules
 @router.post("/tasks/")
-async def create_task(task: TasksCreate, session: SessionDep):
-    task_data = Tasks.model_validate(task)
+async def create_task(task: TasksCreate, session: SessionDep, request: Request):
+    task_mock = Tasks(**task.dict())
+    task_mock.created_by = request.state.user.user_id
+    task_data = Tasks.model_validate(task_mock)
     session.add(task_data)
     await session.commit()
     await session.refresh(task_data)
@@ -74,8 +76,8 @@ async def read_tasks(
     end_date: date | None = None,
     today: bool = False,
     offset: int = 0,
-    limit: Annotated[int, Query(le=100)] = 100,
-):
+    limit: Annotated[int | None, Query(le=100)] = None,
+    ):
     query = select(Tasks).filter(Tasks.deleted_at.is_(None))
     if project_id:
         query = query.filter(Tasks.project_id == project_id)
@@ -85,6 +87,7 @@ async def read_tasks(
         query = query.filter(Tasks.phase.ilike(f"{phase}"))
     if status:
         query = query.filter(Tasks.status.ilike(f"{status}"))
+
     if today:
         today_date = date.today()
         query = query.filter(Tasks.start_date <= today_date)
@@ -94,7 +97,12 @@ async def read_tasks(
             query = query.filter(Tasks.start_date >= start_date)
         if end_date:
             query = query.filter(Tasks.due_date <= end_date)
-    result = await session.execute(query.offset(offset).limit(limit))
+
+    if limit is not None:
+        query = query.offset(offset).limit(limit)
+    else:
+        query = query.offset(offset)
+    result = await session.execute(query)
     tasks = result.scalars().all()
     return tasks
 
@@ -111,6 +119,7 @@ async def update_tasks(task_id: int, task: TasksUpdate, session: SessionDep):
     if not task_data:
         raise HTTPException(status_code=404, detail="Task not found.")
     task_update = task.model_dump(exclude_unset=True)
+    task_update["updated_at"] = datetime.utcnow()
     task_data.sqlmodel_update(task_update)
     session.add(task_data)
     await session.commit()
@@ -129,9 +138,8 @@ async def delete_tasks(task_id: int, session: SessionDep):
     return {"status": "success", "message": "Task deleted successfully."}
 
 # Assignments Modules
-
 @router.post("/assignments/")
-async def create_assignment(assign: AssignmentsCreate, session: SessionDep):
+async def create_assignment(assign: AssignmentsCreate, session: SessionDep, request: Request):
     existing_assignment = await session.execute(
         select(Assignments).filter(
             Assignments.task_id == assign.task_id,
@@ -141,7 +149,9 @@ async def create_assignment(assign: AssignmentsCreate, session: SessionDep):
     if existing_assignment.scalar():
         raise HTTPException(status_code=400, detail="This user is already assigned to this task.")
 
-    assign_data = Assignments.model_validate(assign)
+    assign_mock = Assignments(**assign.dict())
+    assign_mock.assigned_by = request.state.user.user_id
+    assign_data = Assignments.model_validate(assign_mock)
     session.add(assign_data)
     await session.commit()
     await session.refresh(assign_data)
@@ -157,8 +167,8 @@ async def read_assignments(
     end_date: date | None = None,
     today: bool = False,
     offset: int = 0,
-    limit: Annotated[int, Query(le=100)] = 100,
-):
+    limit: Annotated[int | None, Query(le=100)] = None,
+    ):
     query = select(Assignments)
     if task_id:
         query = query.filter(Assignments.task_id == task_id)
@@ -166,6 +176,7 @@ async def read_assignments(
         query = query.filter(Assignments.user_id == user_id)
     if assigned_id:
         query = query.filter(Assignments.assigned_id == assigned_id)
+
     if today:
         today_date = date.today()
         logger.error(today_date)
@@ -175,11 +186,16 @@ async def read_assignments(
             query = query.filter(Assignments.assigned_at >= start_date)
         if end_date:
             query = query.filter(Assignments.assigned_at <= end_date)
-    result = await session.execute(query.offset(offset).limit(limit))
+
+    if limit is not None:
+        query = query.offset(offset).limit(limit)
+    else:
+        query = query.offset(offset)
+    result = await session.execute(query)
     tasks = result.scalars().all()
     return tasks
 
-@router.get("/assignments/{assigned_id}", response_model=TasksPublic)
+@router.get("/assignments/{assigned_id}", response_model=AssignmentsPublic)
 async def read_assignment(assigned_id: int, session: SessionDep):
     assign_data = await session.get(Assignments, assigned_id)
     if not assign_data:

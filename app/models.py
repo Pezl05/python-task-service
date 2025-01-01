@@ -63,7 +63,7 @@ class TasksPublic(TasksBase):
     deleted_at: datetime | None
 
 class AssignmentsBase(SQLModel):
-    task_id: int | None = Field(index=True, foreign_key="tasks.task_id")
+    task_id: int = Field(index=True, foreign_key="tasks.task_id")
     user_id: int = Field(index=True, foreign_key="users.user_id")
     assigned_at: datetime | None = Field(default_factory=datetime.utcnow)
 

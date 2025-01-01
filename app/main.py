@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List
 from fastapi import FastAPI, Request, Depends, HTTPException, Query, APIRouter
 from sqlmodel import Session, select
 from sqlalchemy import cast, Date
@@ -68,7 +68,7 @@ async def create_task(task: TasksCreate, session: SessionDep, request: Request):
 @router.get("/tasks/", response_model=list[TasksPublic])
 async def read_tasks(
     session: SessionDep,
-    project_id: int | None = None,
+    project_id: List[int] = Query(None),
     title: str | None = None,
     phase: str | None = None,
     status: str | None = None,
@@ -80,7 +80,7 @@ async def read_tasks(
     ):
     query = select(Tasks).filter(Tasks.deleted_at.is_(None))
     if project_id:
-        query = query.filter(Tasks.project_id == project_id)
+        query = query.filter(Tasks.project_id.in_(project_id))
     if title:
         query = query.filter(Tasks.title.ilike(f"%{title}%"))
     if phase:

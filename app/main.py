@@ -73,7 +73,7 @@ async def read_tasks(
     phase: str | None = None,
     status: str | None = None,
     start_date: date | None = None,
-    end_date: date | None = None,
+    due_date: date | None = None,
     today: bool = False,
     offset: int = 0,
     limit: Annotated[int | None, Query(le=100)] = None,
@@ -95,8 +95,8 @@ async def read_tasks(
     else:
         if start_date:
             query = query.filter(Tasks.start_date >= start_date)
-        if end_date:
-            query = query.filter(Tasks.due_date <= end_date)
+        if due_date:
+            query = query.filter(Tasks.due_date <= due_date)
 
     if limit is not None:
         query = query.offset(offset).limit(limit)

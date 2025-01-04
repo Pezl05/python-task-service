@@ -77,7 +77,7 @@ services:
     networks:
       - project_network
     depends_on:
-      - auth-service
+      - db
     restart: unless-stopped    
 
 volumes:

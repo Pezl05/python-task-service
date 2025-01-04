@@ -93,10 +93,14 @@ async def read_tasks(
         query = query.filter(Tasks.start_date <= today_date)
         query = query.filter(Tasks.due_date >= today_date)
     else:
+        if start_date and due_date:
+            query = query.filter(
+                (Tasks.start_date <= due_date) & (Tasks.due_date >= start_date)
+            )
         if start_date:
-            query = query.filter(Tasks.start_date >= start_date)
+            query = query.filter(Tasks.start_date <= start_date)
         if due_date:
-            query = query.filter(Tasks.due_date <= due_date)
+            query = query.filter(Tasks.due_date >= due_date)
 
     if limit is not None:
         query = query.offset(offset).limit(limit)

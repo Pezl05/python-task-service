@@ -1,22 +1,24 @@
 replicaCount: 1
-appName: task-service
+appName: task-mgmt
 
 image:
-  repository: harbor.pezl.local/app-test1/app1/python-task-service
-  tag: "v1"
+  repository: "harbor.pezl.local/project_mgmt/python-task-service"
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 service:
-  type: NodePort
+  type: ClusterIP
   port: 3000
   targetPort: 3000
-  nodePort: 30092
 
-env_enabled: true
-env:
-  DB_HOST: db
-  DB_PORT: 5432
-  DB_USER: admin
-  DB_PASSWORD: P@ssw0rd
-  DB_NAME: project_mgmt
-  JWT_KEY: P@ssw0rd
+ingress:
+  enabled: true
+  rewriteTarget: /api/v1/$2
+  tls:
+    secretName: project-mgmt-tls
+    hosts: project-mgmt.pezl.local
+  host: project-mgmt.pezl.local
+  paths: /api/v1/(tasks|assignments)(/|$)(.*)
+  pathType: ImplementationSpecific
+
+existingEnv: auth-mgmt-env

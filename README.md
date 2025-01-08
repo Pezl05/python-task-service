@@ -107,7 +107,9 @@ $ pip install -r requirements.txt
 Run Command.
 ```
 # FastAPI Run Application for Development
-$ fastapi dev app/main.py
+$ fastapi dev app/main.py --port 3000
+or
+$ uvicorn main:app --host 0.0.0.0 --port 3000 --app-dir app/
 ```
 
 # Run Container

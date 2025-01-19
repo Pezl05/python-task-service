@@ -21,4 +21,9 @@ ingress:
   paths: /api/v1/(tasks|assignments)(/|$)(.*)
   pathType: ImplementationSpecific
 
-existingEnv: auth-mgmt-env
+env:
+  OTEL_RESOURCE_ATTRIBUTES: "service.name=task-service"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger-collector.observability:4317
+  OTEL_LOG_LEVEL: error
+
+existingSecret: auth-mgmt-env

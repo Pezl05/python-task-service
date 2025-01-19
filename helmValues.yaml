@@ -26,4 +26,4 @@ env:
   OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger-collector.observability:4317
   OTEL_LOG_LEVEL: error
 
-existingSecret: auth-mgmt-env
+existingSecret: auth-mgmt-secret
